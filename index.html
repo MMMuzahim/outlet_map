@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Outlet Map with Lasso</title>
+<title>Outlet Map & Selector</title>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-lasso/dist/leaflet-lasso.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
    body, html {
@@ -14,21 +13,29 @@
      padding: 0;
      height: 100%;
      width: 100%;
-     font-family: sans-serif;
+     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
      display: flex;
    }
 
-   /* --- SIDEBAR STYLES --- */
+   /* --- SIDEBAR --- */
    #sidebar {
-     width: 320px;
+     width: 340px;
      background: #f8f9fa;
-     border-right: 1px solid #ddd;
+     border-right: 1px solid #ccc;
      display: flex;
      flex-direction: column;
      height: 100vh;
-     box-shadow: 2px 0 5px rgba(0,0,0,0.1);
      z-index: 2000;
+     box-shadow: 2px 0 5px rgba(0,0,0,0.1);
    }
+
+   #sidebar-header {
+     padding: 15px;
+     background: #343a40;
+     color: white;
+   }
+   
+   #sidebar-header h2 { margin: 0; font-size: 18px; }
 
    #sidebar-content {
      padding: 15px;
@@ -36,31 +43,30 @@
      flex: 1;
    }
 
+   /* --- STATS BOX (Bottom of sidebar) --- */
    #stats-box {
-     background: #e3f2fd;
-     border-top: 1px solid #90caf9;
+     background: #e8f0fe;
+     border-top: 2px solid #1a73e8;
      padding: 15px;
-     font-size: 14px;
    }
 
-   /* --- MAP STYLES --- */
+   /* --- MAP --- */
    #map { 
      flex: 1; 
      height: 100vh; 
-     z-index: 1;
    }
 
-   /* --- FORM ELEMENTS --- */
-   label { font-weight: bold; font-size: 12px; color: #333; display: block; margin-top: 10px; }
-   select { width: 100%; padding: 5px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; }
-   
+   /* --- FORM CONTROLS --- */
+   label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-top: 12px; margin-bottom: 4px; }
+   select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+   input[type="file"] { width: 100%; font-size: 12px; }
+
    .checkbox-group {
-     max-height: 150px;
+     max-height: 120px;
      overflow-y: auto;
-     border: 1px solid #ccc;
-     padding: 5px;
+     border: 1px solid #ddd;
+     padding: 8px;
      background: white;
-     margin-bottom: 10px;
      border-radius: 4px;
    }
    
@@ -68,97 +74,104 @@
      display: flex;
      align-items: center;
      gap: 8px;
-     font-size: 13px;
      margin-bottom: 4px;
-     padding: 2px;
+     font-size: 13px;
    }
-   
-   input[type="checkbox"] { accent-color: #007bff; cursor: pointer; }
-   input[type="file"] { margin-bottom: 10px; }
-   
-   h3 { margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 5px; color: #007bff; }
-   .stat-value { font-size: 18px; font-weight: bold; color: #007bff; display: block; margin-top: 2px;}
-   
-   /* Styling to ensure the lasso button is visible */
-   .leaflet-control-lasso {
-       background-color: white;
-       border: 2px solid rgba(0,0,0,0.2);
-       background-clip: padding-box;
+
+   /* --- SELECTION BUTTON --- */
+   #lasso-btn {
+     width: 100%;
+     padding: 10px;
+     background-color: #007bff;
+     color: white;
+     border: none;
+     border-radius: 4px;
+     cursor: pointer;
+     font-weight: bold;
+     margin-top: 5px;
+     text-transform: uppercase;
+     font-size: 12px;
    }
+   #lasso-btn:hover { background-color: #0056b3; }
+   #lasso-btn.active { background-color: #dc3545; } /* Red when active */
+
+   /* --- STATS TEXT --- */
+   .stat-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+   .stat-value { font-size: 20px; font-weight: bold; color: #1a73e8; display: block; margin-bottom: 5px; }
+
 </style>
 </head>
 <body>
 
 <div id="sidebar">
-  <div id="sidebar-content">
-    <h3>Outlet Map Tool</h3>
-    
-    <label>1. Upload Excel File:</label>
-    <input type="file" id="fileInput" accept=".xlsx" style="width:100%"/>
-    
-    <label>ASM:</label>
-    <select id="asmFilter"><option value="">All</option></select>
-    
-    <label>SD:</label>
-    <select id="sdFilter"><option value="">All</option></select>
-    
-    <label>Preseller:</label>
-    <select id="presellerFilter"><option value="">All</option></select>
-    
-    <label>Main Channel (Check to filter):</label>
-    <div id="channelFilters" class="checkbox-group"><i>Upload file to load...</i></div>
+  <div id="sidebar-header">
+    <h2>Outlet Map Tool</h2>
+  </div>
 
-    <label>Weekday Availability:</label>
-    <div id="weekdayFilters" class="checkbox-group"><i>Upload file to load...</i></div>
+  <div id="sidebar-content">
+    <label>1. Upload Excel File</label>
+    <input type="file" id="fileInput" accept=".xlsx" />
+
+    <label>2. Filter Data</label>
+    <select id="asmFilter"><option value="">ASM: All</option></select>
+    <select id="sdFilter"><option value="">SD: All</option></select>
+    <select id="presellerFilter"><option value="">Preseller: All</option></select>
+
+    <label>Main Channel</label>
+    <div id="channelFilters" class="checkbox-group"><i>Load file first...</i></div>
+
+    <label>Weekday Availability</label>
+    <div id="weekdayFilters" class="checkbox-group"><i>Load file first...</i></div>
   </div>
 
   <div id="stats-box">
-    <div>Selected Outlets: <span id="countDisplay" class="stat-value">0</span></div>
-    <div style="margin-top: 8px;">Total L12M UC: <span id="sumDisplay" class="stat-value">0</span></div>
-    <div style="font-size:11px; color:#555; margin-top:8px; border-top: 1px solid #bddef7; padding-top: 5px;">
-      <b>To select area:</b><br>
-      1. Click the <span style="border:1px solid #666; padding:0 2px;">□</span> button (top-right of map).<br>
-      2. Click & drag on map to select outlets.
+    <button id="lasso-btn" onclick="toggleLasso()">Activate Selection Tool</button>
+    <div style="font-size: 11px; color: #666; margin-bottom: 10px; text-align: center; margin-top: 5px;">
+      (Click button, then drag on map)
     </div>
+
+    <span class="stat-label">Selected Outlets:</span>
+    <span id="countDisplay" class="stat-value">0</span>
+    
+    <span class="stat-label">Total L12M UC:</span>
+    <span id="sumDisplay" class="stat-value">0</span>
   </div>
 </div>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/leaflet-lasso/dist/leaflet-lasso.min.js"></script>
+<script src="https://unpkg.com/leaflet-lasso@2.2.12/dist/leaflet-lasso.umd.min.js"></script>
 
 <script>
- // --- 1. INITIALIZE MAP ---
- let map = L.map('map', {
-     center: [40.4093, 49.8671], 
-     zoom: 12
- });
-
+ // --- MAP SETUP ---
+ const map = L.map('map').setView([40.4093, 49.8671], 12);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-   attribution: '© OpenStreetMap contributors'
+   attribution: '&copy; OpenStreetMap'
  }).addTo(map);
 
- // Explicitly add Lasso Control to Top Right
- L.control.lasso({ position: 'topright' }).addTo(map);
+ // Initialize Lasso (but don't enable it yet)
+ const lasso = L.lasso(map); 
 
- // --- 2. VARIABLES ---
+ // --- DATA VARIABLES ---
  let allData = [];
  let markers = []; 
- let currentFilteredData = []; 
  let weekdayColumns = [];
  let presellerColors = {};
  const weekdayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+ 
+ // Palette for dynamic coloring
  const colorPalette = [
-   'red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'lime', 'brown',
-   'black', 'gray', 'gold', 'navy', 'teal', 'maroon', 'violet', 'pink', 'darkgreen',
-   'coral', 'darkblue', 'darkred', 'chocolate', 'slateblue', 'olive', 'turquoise', 'indigo'
+   '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', 
+   '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', 
+   '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000'
  ];
 
- // --- 3. FILE UPLOAD ---
+ // --- FILE HANDLING ---
  document.getElementById('fileInput').addEventListener('change', function (e) {
    const file = e.target.files[0];
+   if(!file) return;
    const reader = new FileReader();
    reader.onload = function (e) {
      const data = new Uint8Array(e.target.result);
@@ -166,38 +179,164 @@
      const sheet = workbook.Sheets[workbook.SheetNames[0]];
      allData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
      
+     // Initialize filters based on new data
      detectWeekdayColumns(allData);
      renderWeekdayCheckboxes();
      renderChannelCheckboxes(); 
      updateDropdowns();
-     updateMap();
+     updateMap(); // Plot initial points
    };
    reader.readAsArrayBuffer(file);
  });
 
- // --- 4. HELPERS ---
+ // --- LASSO LOGIC (Selection) ---
+ function toggleLasso() {
+    if (lasso.enabled()) {
+        lasso.disable();
+    } else {
+        lasso.enable();
+    }
+ }
+
+ // Listen for Lasso events
+ map.on('lasso.enabled', () => {
+    const btn = document.getElementById('lasso-btn');
+    btn.innerText = "Selection Active (Draw now)";
+    btn.classList.add('active');
+    map.getContainer().style.cursor = "crosshair"; // Visual cue
+ });
+
+ map.on('lasso.disabled', () => {
+    const btn = document.getElementById('lasso-btn');
+    btn.innerText = "Activate Selection Tool";
+    btn.classList.remove('active');
+    map.getContainer().style.cursor = "";
+ });
+
+ map.on('lasso.finished', event => {
+    // Get selected markers
+    const selectedLayers = event.layers.filter(l => l instanceof L.CircleMarker);
+    calculateStats(selectedLayers);
+    lasso.disable(); // Auto-disable after drawing one shape (optional user preference)
+ });
+
+ function calculateStats(markerList) {
+    let totalUC = 0;
+    markerList.forEach(m => {
+        // Clean the number string (remove commas, handle text)
+        let rawVal = m.options.customData["L12M UC"];
+        let cleanVal = String(rawVal).replace(/[^0-9.-]+/g,""); // Remove non-numeric chars except dot/minus
+        let val = parseFloat(cleanVal);
+        
+        if(!isNaN(val)) {
+            totalUC += val;
+        }
+    });
+
+    // Format display
+    document.getElementById('countDisplay').innerText = markerList.length;
+    document.getElementById('sumDisplay').innerText = totalUC.toLocaleString('en-US', { 
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 2 
+    });
+ }
+
+ // --- FILTER LOGIC ---
+ function updateMap() {
+   // 1. Reset
+   markers.forEach(m => map.removeLayer(m));
+   markers = [];
+   
+   // 2. Get Filter Inputs
+   const asm = document.getElementById("asmFilter").value;
+   const sd = document.getElementById("sdFilter").value;
+   const preseller = document.getElementById("presellerFilter").value;
+   const selectedDays = weekdayColumns.filter(day => document.getElementById(`day_${day}`)?.checked);
+   const selectedChannels = Array.from(document.querySelectorAll('.channel-cb:checked')).map(cb => cb.value);
+
+   // 3. Filter Data Loop
+   const filteredData = allData.filter(row => {
+     // Exact match filters
+     if (asm && row["ASM"] !== asm) return false;
+     if (sd && row["SD"] !== sd) return false;
+     if (preseller && row["Preseller"] !== preseller) return false;
+     
+     // Channel (Checkbox OR logic)
+     if (selectedChannels.length > 0 && !selectedChannels.includes(row["Main Channel"])) return false;
+     
+     // Weekday (Checkbox AND logic - must have '1' for all checked days)
+     if (selectedDays.length > 0) {
+        const hasAllDays = selectedDays.every(day => String(row[day]).trim() === "1");
+        if (!hasAllDays) return false;
+     }
+
+     return true;
+   });
+
+   // 4. Draw Markers
+   presellerColors = {}; // Reset color mapping for new set
+   filteredData.forEach(row => {
+     const lat = parseFloat(row["GPS Y"]);
+     const lon = parseFloat(row["GPS X"]);
+     
+     if (!isNaN(lat) && !isNaN(lon)) {
+       const presellerName = row["Preseller"] || "Unknown";
+       const color = getPresellerColor(presellerName);
+       
+       const popupContent = `
+         <div style="font-size:13px">
+         <b>${row["Outlet Name"] || "Outlet"}</b><br/>
+         ID: ${row["Outlet Number"]}<br/>
+         <hr style="margin:4px 0; opacity:0.3"/>
+         Channel: ${row["Main Channel"]}<br/>
+         L12M UC: <b>${row["L12M UC"]}</b>
+         </div>
+       `;
+
+       const marker = L.circleMarker([lat, lon], {
+         radius: 6,
+         color: color,
+         fillColor: color,
+         fillOpacity: 0.8,
+         weight: 1,
+         customData: row // Attach raw data for stats
+       }).bindPopup(popupContent).addTo(map);
+
+       markers.push(marker);
+     }
+   });
+
+   // 5. Fit Bounds if markers exist
+   if (markers.length > 0) {
+     const group = L.featureGroup(markers);
+     map.fitBounds(group.getBounds().pad(0.1));
+   }
+
+   // 6. Update Stats to show TOTAL of all visible points initially
+   calculateStats(markers);
+ }
+
+ // --- HELPER FUNCTIONS ---
+ function getPresellerColor(name) {
+    if(!presellerColors[name]) {
+        // Assign next available color, loop if run out
+        const index = Object.keys(presellerColors).length % colorPalette.length;
+        presellerColors[name] = colorPalette[index];
+    }
+    return presellerColors[name];
+ }
+
  function detectWeekdayColumns(data) {
    const sample = data[0];
    weekdayColumns = [];
    if(!sample) return;
    Object.keys(sample).forEach(col => {
-     const normalized = col.trim().toLowerCase();
-     if (weekdayNames.map(w => w.toLowerCase()).includes(normalized)) {
+     if (weekdayNames.some(w => w.toLowerCase() === col.trim().toLowerCase())) {
        weekdayColumns.push(col);
      }
    });
  }
 
- function getPresellerColor(preseller) {
-   if (!presellerColors[preseller]) {
-     const used = Object.values(presellerColors);
-     const next = colorPalette.find(c => !used.includes(c)) || 'black';
-     presellerColors[preseller] = next;
-   }
-   return presellerColors[preseller];
- }
-
- // --- 5. UI RENDERING ---
  function renderWeekdayCheckboxes() {
    const container = document.getElementById("weekdayFilters");
    container.innerHTML = "";
@@ -205,12 +344,9 @@
      const id = `day_${day}`;
      container.innerHTML += `
       <div class="checkbox-item">
-         <input type="checkbox" id="${id}" value="${day}">
-         <label for="${id}" style="margin:0; font-weight:normal;">${day}</label>
+         <input type="checkbox" id="${id}" value="${day}" onchange="updateMap()">
+         <label for="${id}" style="margin:0; font-weight:normal; cursor:pointer">${day}</label>
       </div>`;
-   });
-   weekdayColumns.forEach(day => {
-     document.getElementById(`day_${day}`).addEventListener("change", updateMap);
    });
  }
 
@@ -224,143 +360,60 @@
         const id = `ch_${index}`;
         container.innerHTML += `
         <div class="checkbox-item">
-            <input type="checkbox" class="channel-cb" id="${id}" value="${ch}">
-            <label for="${id}" style="margin:0; font-weight:normal;">${ch}</label>
+            <input type="checkbox" class="channel-cb" id="${id}" value="${ch}" onchange="updateMap()">
+            <label for="${id}" style="margin:0; font-weight:normal; cursor:pointer">${ch}</label>
         </div>`;
     });
-
-    document.querySelectorAll('.channel-cb').forEach(cb => {
-        cb.addEventListener('change', updateMap);
-    });
  }
 
+ // Dropdown Updaters
  function updateDropdowns() {
-   const asmSet = new Set();
-   allData.forEach(r => r["ASM"] && asmSet.add(r["ASM"]));
-   fillDropdown("asmFilter", asmSet);
-   updateSDDropdown();
+    fillDropdown("asmFilter", "ASM");
+    updateSDDropdown();
  }
-
  function updateSDDropdown() {
-   const asm = document.getElementById("asmFilter").value;
-   const sdSet = new Set();
-   allData.forEach(r => {
-     if ((!asm || r["ASM"] === asm) && r["SD"]) {
-       sdSet.add(r["SD"]);
-     }
-   });
-   fillDropdown("sdFilter", sdSet);
-   updatePresellerDropdown();
- }
-
- function updatePresellerDropdown() {
-   const asm = document.getElementById("asmFilter").value;
-   const sd = document.getElementById("sdFilter").value;
-   const presellerSet = new Set();
-   allData.forEach(r => {
-     if ((!asm || r["ASM"] === asm) && (!sd || r["SD"] === sd) && r["Preseller"]) {
-       presellerSet.add(r["Preseller"]);
-     }
-   });
-   fillDropdown("presellerFilter", presellerSet);
- }
-
- function fillDropdown(id, values) {
-   const dropdown = document.getElementById(id);
-   const current = dropdown.value;
-   dropdown.innerHTML = `<option value="">All</option>`;
-   Array.from(values).sort().forEach(val => {
-     dropdown.innerHTML += `<option value="${val}" ${val === current ? 'selected' : ''}>${val}</option>`;
-   });
- }
-
- // --- 6. MAP UPDATE ---
- function updateMap() {
-   markers.forEach(m => map.removeLayer(m));
-   markers = [];
-   
-   const asm = document.getElementById("asmFilter").value;
-   const sd = document.getElementById("sdFilter").value;
-   const preseller = document.getElementById("presellerFilter").value;
-   const selectedDays = weekdayColumns.filter(day => document.getElementById(`day_${day}`)?.checked);
-   const selectedChannels = Array.from(document.querySelectorAll('.channel-cb:checked')).map(cb => cb.value);
-
-   currentFilteredData = allData.filter(row => {
-     const passAsm = !asm || row["ASM"] === asm;
-     const passSd = !sd || row["SD"] === sd;
-     const passPreseller = !preseller || row["Preseller"] === preseller;
-     const passChannel = selectedChannels.length === 0 || selectedChannels.includes(row["Main Channel"]);
-     const passDays = selectedDays.length === 0 || selectedDays.every(day => String(row[day]).trim() === "1");
-     return passAsm && passSd && passPreseller && passChannel && passDays;
-   });
-
-   presellerColors = {}; 
-   currentFilteredData.forEach(row => {
-     const lat = parseFloat(row["GPS Y"]);
-     const lon = parseFloat(row["GPS X"]);
-     
-     if (!isNaN(lat) && !isNaN(lon)) {
-       const presellerName = row["Preseller"] || "Unknown";
-       const color = getPresellerColor(presellerName);
-       
-       const popup = `
-         <b>${row["Outlet Name"] || ""}</b><br>
-         ID: ${row["Outlet Number"]}<br>
-         L12M UC: ${row["L12M UC"]}<br>
-         Channel: ${row["Main Channel"]}<br>
-         ASM: ${row["ASM"]} | SD: ${row["SD"]}
-       `;
-
-       const marker = L.circleMarker([lat, lon], {
-         radius: 6,
-         color: color,
-         fillColor: color,
-         fillOpacity: 0.8,
-         weight: 1
-       }).bindPopup(popup).addTo(map);
-
-       marker.data = row; 
-       markers.push(marker);
-     }
-   });
-
-   if (markers.length > 0) {
-     const group = L.featureGroup(markers);
-     map.fitBounds(group.getBounds().pad(0.1));
-   }
-   
-   // Reset stats to show total of current filter
-   calculateStats(markers);
- }
-
- // --- 7. LASSO & STATS ---
-
- map.on('lasso.finished', event => {
-    const selectedMarkers = event.layers.filter(layer => layer instanceof L.CircleMarker);
-    calculateStats(selectedMarkers);
- });
-
- map.on('lasso.disabled', () => {
-    // Return to showing stats for ALL filtered markers
-    calculateStats(markers);
- });
-
- function calculateStats(markerList) {
-    let totalUC = 0;
-    
-    markerList.forEach(m => {
-        let valString = String(m.data["L12M UC"] || "0");
-        // Handle numbers with commas (e.g. "1,200")
-        let val = parseFloat(valString.replace(/,/g, ''));
-        if(!isNaN(val)) totalUC += val;
+    // Filter SD options based on selected ASM
+    const currentAsm = document.getElementById("asmFilter").value;
+    const sdSet = new Set();
+    allData.forEach(r => {
+        if(!currentAsm || r["ASM"] === currentAsm) {
+            if(r["SD"]) sdSet.add(r["SD"]);
+        }
     });
-
-    const formattedUC = totalUC.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    
-    document.getElementById('countDisplay').innerText = markerList.length;
-    document.getElementById('sumDisplay').innerText = formattedUC;
+    fillDropdown("sdFilter", null, sdSet); // Pass set directly
+    updatePresellerDropdown();
+ }
+ function updatePresellerDropdown() {
+    const currentAsm = document.getElementById("asmFilter").value;
+    const currentSd = document.getElementById("sdFilter").value;
+    const pSet = new Set();
+    allData.forEach(r => {
+        const matchAsm = !currentAsm || r["ASM"] === currentAsm;
+        const matchSd = !currentSd || r["SD"] === currentSd;
+        if(matchAsm && matchSd && r["Preseller"]) pSet.add(r["Preseller"]);
+    });
+    fillDropdown("presellerFilter", null, pSet);
  }
 
+ function fillDropdown(elementId, colName, providedSet=null) {
+    const select = document.getElementById(elementId);
+    const oldVal = select.value;
+    let values = providedSet;
+    
+    if(!values) {
+        values = new Set();
+        allData.forEach(r => r[colName] && values.add(r[colName]));
+    }
+    
+    let html = `<option value="">All</option>`;
+    Array.from(values).sort().forEach(val => {
+        html += `<option value="${val}">${val}</option>`;
+    });
+    select.innerHTML = html;
+    select.value = oldVal; // Try to keep selection
+ }
+
+ // Event Listeners for Dropdowns
  document.getElementById("asmFilter").addEventListener("change", () => { updateSDDropdown(); updateMap(); });
  document.getElementById("sdFilter").addEventListener("change", () => { updatePresellerDropdown(); updateMap(); });
  document.getElementById("presellerFilter").addEventListener("change", updateMap);
