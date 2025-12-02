@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Outlet Map & Selector</title>
+<title>Outlet Map Professional</title>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -20,7 +20,6 @@
    /* --- SIDEBAR (RED THEME) --- */
    #sidebar {
      width: 340px;
-     /* Subtle reddish tint for background */
      background: #fff5f5; 
      border-right: 1px solid #eebdbd;
      display: flex;
@@ -32,7 +31,6 @@
 
    #sidebar-header {
      padding: 15px;
-     /* Deep, professional red */
      background: #8a1c1c; 
      color: white;
    }
@@ -45,9 +43,8 @@
      flex: 1;
    }
 
-   /* --- STATS BOX (Bottom of sidebar) --- */
+   /* --- STATS BOX --- */
    #stats-box {
-     /* Light red background */
      background: #ffe3e3;
      border-top: 2px solid #b71c1c;
      padding: 15px;
@@ -82,11 +79,10 @@
      color: #333;
    }
 
-   /* --- SELECTION BUTTON (Red) --- */
+   /* --- BUTTONS --- */
    #lasso-btn {
      width: 100%;
      padding: 10px;
-     /* Muted Red */
      background-color: #c0392b; 
      color: white;
      border: none;
@@ -99,11 +95,30 @@
      transition: background 0.2s;
    }
    #lasso-btn:hover { background-color: #a93226; }
-   #lasso-btn.active { background-color: #444; } /* Turns dark grey when active */
+   #lasso-btn.active { background-color: #333; border: 2px solid #000; } 
+
+   #reset-lasso-btn {
+       width: 100%;
+       padding: 5px;
+       background: #fff;
+       border: 1px solid #c0392b;
+       color: #c0392b;
+       font-size: 11px;
+       cursor: pointer;
+       margin-top: 5px;
+       border-radius: 4px;
+       display: none; /* Hidden by default */
+   }
 
    /* --- STATS TEXT --- */
    .stat-label { font-size: 12px; color: #7f2e2e; text-transform: uppercase; letter-spacing: 0.5px; }
    .stat-value { font-size: 20px; font-weight: bold; color: #922b21; display: block; margin-bottom: 5px; }
+
+   /* --- POPUP TABLE STYLE --- */
+   .popup-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+   .popup-table td { padding: 3px; border-bottom: 1px solid #eee; }
+   .popup-table td:first-child { font-weight: bold; color: #555; width: 40%; }
+   .popup-container { max-height: 200px; overflow-y: auto; min-width: 200px; }
 
 </style>
 </head>
@@ -132,6 +147,8 @@
 
   <div id="stats-box">
     <button id="lasso-btn" onclick="toggleLasso()">Activate Selection Tool</button>
+    <button id="reset-lasso-btn" onclick="resetSelection()">Clear Selection (Show All)</button>
+    
     <div style="font-size: 11px; color: #7f2e2e; margin-bottom: 10px; text-align: center; margin-top: 5px;">
       (Click button, then drag on map)
     </div>
@@ -201,7 +218,26 @@
     }
  }
 
- // 1. Enabled State
+ function resetSelection() {
+    lasso.disable();
+    
+    // Restore Visuals
+    markers.forEach(m => {
+        m.setStyle({
+            fillColor: m.options.originalColor, 
+            color: m.options.originalColor,
+            fillOpacity: 0.8,
+            opacity: 1,
+            radius: 6,
+            weight: 1
+        });
+    });
+
+    // Restore Stats to Full List
+    calculateStats(markers);
+    document.getElementById("reset-lasso-btn").style.display = "none";
+ }
+
  map.on('lasso.enabled', () => {
     const btn = document.getElementById('lasso-btn');
     btn.innerText = "Selection Active (Draw Now)";
@@ -209,57 +245,49 @@
     map.getContainer().style.cursor = "crosshair"; 
  });
 
- // 2. Disabled State (Reset Styles)
  map.on('lasso.disabled', () => {
     const btn = document.getElementById('lasso-btn');
     btn.innerText = "Activate Selection Tool";
     btn.classList.remove('active');
     map.getContainer().style.cursor = "";
-
-    // RESTORE COLORS
-    markers.forEach(m => {
-        m.setStyle({
-            fillColor: m.options.originalColor, // Restore color
-            color: m.options.originalColor,
-            fillOpacity: 0.8,
-            radius: 6,
-            weight: 1
-        });
-    });
-
-    calculateStats(markers); // Show total again
  });
 
- // 3. Selection Finished (Apply Highlights)
+ // *** CORE LOGIC FOR DIFFERENTIATING MARKERS ***
  map.on('lasso.finished', event => {
     const selectedLayers = event.layers.filter(l => l instanceof L.CircleMarker);
     
-    // Loop through ALL markers to Style them
+    if (selectedLayers.length === 0) return;
+
+    document.getElementById("reset-lasso-btn").style.display = "block";
+
+    // Loop through ALL markers to apply HIGH CONTRAST
     markers.forEach(m => {
         if(selectedLayers.includes(m)) {
-            // SELECTED: Keep color, Add black border, Make bigger
+            // SELECTED: Keep Color + Thick Black Border + Bigger
             m.setStyle({
                 fillColor: m.options.originalColor,
-                color: 'black',
-                weight: 2,
-                radius: 8,
-                fillOpacity: 1
+                color: '#000000', // Black Border
+                weight: 3,        // Thick
+                radius: 8,        // Bigger
+                fillOpacity: 1,
+                opacity: 1
             });
-            m.bringToFront(); // Put on top
+            m.bringToFront(); 
         } else {
-            // UNSELECTED: Turn gray and transparent
+            // UNSELECTED: Ghost Mode (Gray, Transparent, Small)
             m.setStyle({
                 fillColor: '#cccccc',
                 color: '#cccccc',
                 weight: 1,
-                radius: 5,
-                fillOpacity: 0.3
+                radius: 4,
+                fillOpacity: 0.2,
+                opacity: 0.2
             });
         }
     });
 
     calculateStats(selectedLayers);
-    lasso.disable(); // Turn off tool after selection
+    lasso.disable(); 
  });
 
  function calculateStats(markerList) {
@@ -276,6 +304,23 @@
         minimumFractionDigits: 0, 
         maximumFractionDigits: 2 
     });
+ }
+
+ // --- DYNAMIC POPUP GENERATOR ---
+ function generatePopupContent(row) {
+    let html = `<div class="popup-container"><table class="popup-table">`;
+    
+    // Iterate over EVERY column in the Excel row
+    Object.keys(row).forEach(key => {
+        let val = row[key];
+        // Skip empty values to keep popup clean? Remove if check if you want empty cells too.
+        if(val !== "" && val !== null && val !== undefined) {
+            html += `<tr><td>${key}</td><td>${val}</td></tr>`;
+        }
+    });
+
+    html += `</table></div>`;
+    return html;
  }
 
  // --- FILTER & RENDER LOGIC ---
@@ -301,6 +346,7 @@
    });
 
    presellerColors = {}; 
+   
    filteredData.forEach(row => {
      const lat = parseFloat(row["GPS Y"]);
      const lon = parseFloat(row["GPS X"]);
@@ -309,15 +355,8 @@
        const presellerName = row["Preseller"] || "Unknown";
        const color = getPresellerColor(presellerName);
        
-       const popupContent = `
-         <div style="font-size:13px">
-         <b>${row["Outlet Name"] || "Outlet"}</b><br/>
-         ID: ${row["Outlet Number"]}<br/>
-         <hr style="margin:4px 0; opacity:0.3"/>
-         Channel: ${row["Main Channel"]}<br/>
-         L12M UC: <b>${row["L12M UC"]}</b>
-         </div>
-       `;
+       // Use the dynamic popup function here
+       const popupContent = generatePopupContent(row);
 
        const marker = L.circleMarker([lat, lon], {
          radius: 6,
@@ -325,7 +364,7 @@
          fillColor: color,
          fillOpacity: 0.8,
          weight: 1,
-         originalColor: color, // Store original color for reset
+         originalColor: color, // Store original color for reset logic
          customData: row 
        }).bindPopup(popupContent).addTo(map);
 
@@ -339,6 +378,8 @@
    }
 
    calculateStats(markers);
+   // Hide reset button on new filter application
+   document.getElementById("reset-lasso-btn").style.display = "none";
  }
 
  // --- HELPER FUNCTIONS ---
