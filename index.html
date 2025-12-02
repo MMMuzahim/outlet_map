@@ -17,11 +17,12 @@
      display: flex;
    }
 
-   /* --- SIDEBAR --- */
+   /* --- SIDEBAR (RED THEME) --- */
    #sidebar {
      width: 340px;
-     background: #f8f9fa;
-     border-right: 1px solid #ccc;
+     /* Subtle reddish tint for background */
+     background: #fff5f5; 
+     border-right: 1px solid #eebdbd;
      display: flex;
      flex-direction: column;
      height: 100vh;
@@ -31,11 +32,12 @@
 
    #sidebar-header {
      padding: 15px;
-     background: #343a40;
+     /* Deep, professional red */
+     background: #8a1c1c; 
      color: white;
    }
    
-   #sidebar-header h2 { margin: 0; font-size: 18px; }
+   #sidebar-header h2 { margin: 0; font-size: 18px; font-weight: 600; }
 
    #sidebar-content {
      padding: 15px;
@@ -45,8 +47,9 @@
 
    /* --- STATS BOX (Bottom of sidebar) --- */
    #stats-box {
-     background: #e8f0fe;
-     border-top: 2px solid #1a73e8;
+     /* Light red background */
+     background: #ffe3e3;
+     border-top: 2px solid #b71c1c;
      padding: 15px;
    }
 
@@ -57,14 +60,14 @@
    }
 
    /* --- FORM CONTROLS --- */
-   label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-top: 12px; margin-bottom: 4px; }
-   select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+   label { font-weight: 600; font-size: 13px; color: #5c1818; display: block; margin-top: 12px; margin-bottom: 4px; }
+   select { width: 100%; padding: 6px; border: 1px solid #dcb5b5; border-radius: 4px; background: white; }
    input[type="file"] { width: 100%; font-size: 12px; }
 
    .checkbox-group {
      max-height: 120px;
      overflow-y: auto;
-     border: 1px solid #ddd;
+     border: 1px solid #dcb5b5;
      padding: 8px;
      background: white;
      border-radius: 4px;
@@ -76,13 +79,15 @@
      gap: 8px;
      margin-bottom: 4px;
      font-size: 13px;
+     color: #333;
    }
 
-   /* --- SELECTION BUTTON --- */
+   /* --- SELECTION BUTTON (Red) --- */
    #lasso-btn {
      width: 100%;
      padding: 10px;
-     background-color: #007bff;
+     /* Muted Red */
+     background-color: #c0392b; 
      color: white;
      border: none;
      border-radius: 4px;
@@ -91,13 +96,14 @@
      margin-top: 5px;
      text-transform: uppercase;
      font-size: 12px;
+     transition: background 0.2s;
    }
-   #lasso-btn:hover { background-color: #0056b3; }
-   #lasso-btn.active { background-color: #dc3545; } /* Red when active */
+   #lasso-btn:hover { background-color: #a93226; }
+   #lasso-btn.active { background-color: #444; } /* Turns dark grey when active */
 
    /* --- STATS TEXT --- */
-   .stat-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
-   .stat-value { font-size: 20px; font-weight: bold; color: #1a73e8; display: block; margin-bottom: 5px; }
+   .stat-label { font-size: 12px; color: #7f2e2e; text-transform: uppercase; letter-spacing: 0.5px; }
+   .stat-value { font-size: 20px; font-weight: bold; color: #922b21; display: block; margin-bottom: 5px; }
 
 </style>
 </head>
@@ -126,7 +132,7 @@
 
   <div id="stats-box">
     <button id="lasso-btn" onclick="toggleLasso()">Activate Selection Tool</button>
-    <div style="font-size: 11px; color: #666; margin-bottom: 10px; text-align: center; margin-top: 5px;">
+    <div style="font-size: 11px; color: #7f2e2e; margin-bottom: 10px; text-align: center; margin-top: 5px;">
       (Click button, then drag on map)
     </div>
 
@@ -151,17 +157,15 @@
    attribution: '&copy; OpenStreetMap'
  }).addTo(map);
 
- // Initialize Lasso (but don't enable it yet)
- const lasso = L.lasso(map); 
+ const lasso = L.lasso(map); // Initialize Lasso
 
- // --- DATA VARIABLES ---
+ // --- VARIABLES ---
  let allData = [];
  let markers = []; 
  let weekdayColumns = [];
  let presellerColors = {};
  const weekdayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
  
- // Palette for dynamic coloring
  const colorPalette = [
    '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', 
    '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', 
@@ -179,17 +183,16 @@
      const sheet = workbook.Sheets[workbook.SheetNames[0]];
      allData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
      
-     // Initialize filters based on new data
      detectWeekdayColumns(allData);
      renderWeekdayCheckboxes();
      renderChannelCheckboxes(); 
      updateDropdowns();
-     updateMap(); // Plot initial points
+     updateMap(); 
    };
    reader.readAsArrayBuffer(file);
  });
 
- // --- LASSO LOGIC (Selection) ---
+ // --- LASSO & HIGHLIGHT LOGIC ---
  function toggleLasso() {
     if (lasso.enabled()) {
         lasso.disable();
@@ -198,42 +201,76 @@
     }
  }
 
- // Listen for Lasso events
+ // 1. Enabled State
  map.on('lasso.enabled', () => {
     const btn = document.getElementById('lasso-btn');
-    btn.innerText = "Selection Active (Draw now)";
+    btn.innerText = "Selection Active (Draw Now)";
     btn.classList.add('active');
-    map.getContainer().style.cursor = "crosshair"; // Visual cue
+    map.getContainer().style.cursor = "crosshair"; 
  });
 
+ // 2. Disabled State (Reset Styles)
  map.on('lasso.disabled', () => {
     const btn = document.getElementById('lasso-btn');
     btn.innerText = "Activate Selection Tool";
     btn.classList.remove('active');
     map.getContainer().style.cursor = "";
+
+    // RESTORE COLORS
+    markers.forEach(m => {
+        m.setStyle({
+            fillColor: m.options.originalColor, // Restore color
+            color: m.options.originalColor,
+            fillOpacity: 0.8,
+            radius: 6,
+            weight: 1
+        });
+    });
+
+    calculateStats(markers); // Show total again
  });
 
+ // 3. Selection Finished (Apply Highlights)
  map.on('lasso.finished', event => {
-    // Get selected markers
     const selectedLayers = event.layers.filter(l => l instanceof L.CircleMarker);
+    
+    // Loop through ALL markers to Style them
+    markers.forEach(m => {
+        if(selectedLayers.includes(m)) {
+            // SELECTED: Keep color, Add black border, Make bigger
+            m.setStyle({
+                fillColor: m.options.originalColor,
+                color: 'black',
+                weight: 2,
+                radius: 8,
+                fillOpacity: 1
+            });
+            m.bringToFront(); // Put on top
+        } else {
+            // UNSELECTED: Turn gray and transparent
+            m.setStyle({
+                fillColor: '#cccccc',
+                color: '#cccccc',
+                weight: 1,
+                radius: 5,
+                fillOpacity: 0.3
+            });
+        }
+    });
+
     calculateStats(selectedLayers);
-    lasso.disable(); // Auto-disable after drawing one shape (optional user preference)
+    lasso.disable(); // Turn off tool after selection
  });
 
  function calculateStats(markerList) {
     let totalUC = 0;
     markerList.forEach(m => {
-        // Clean the number string (remove commas, handle text)
         let rawVal = m.options.customData["L12M UC"];
-        let cleanVal = String(rawVal).replace(/[^0-9.-]+/g,""); // Remove non-numeric chars except dot/minus
+        let cleanVal = String(rawVal).replace(/[^0-9.-]+/g,""); 
         let val = parseFloat(cleanVal);
-        
-        if(!isNaN(val)) {
-            totalUC += val;
-        }
+        if(!isNaN(val)) totalUC += val;
     });
 
-    // Format display
     document.getElementById('countDisplay').innerText = markerList.length;
     document.getElementById('sumDisplay').innerText = totalUC.toLocaleString('en-US', { 
         minimumFractionDigits: 0, 
@@ -241,40 +278,29 @@
     });
  }
 
- // --- FILTER LOGIC ---
+ // --- FILTER & RENDER LOGIC ---
  function updateMap() {
-   // 1. Reset
    markers.forEach(m => map.removeLayer(m));
    markers = [];
    
-   // 2. Get Filter Inputs
    const asm = document.getElementById("asmFilter").value;
    const sd = document.getElementById("sdFilter").value;
    const preseller = document.getElementById("presellerFilter").value;
    const selectedDays = weekdayColumns.filter(day => document.getElementById(`day_${day}`)?.checked);
    const selectedChannels = Array.from(document.querySelectorAll('.channel-cb:checked')).map(cb => cb.value);
 
-   // 3. Filter Data Loop
    const filteredData = allData.filter(row => {
-     // Exact match filters
      if (asm && row["ASM"] !== asm) return false;
      if (sd && row["SD"] !== sd) return false;
      if (preseller && row["Preseller"] !== preseller) return false;
-     
-     // Channel (Checkbox OR logic)
      if (selectedChannels.length > 0 && !selectedChannels.includes(row["Main Channel"])) return false;
-     
-     // Weekday (Checkbox AND logic - must have '1' for all checked days)
      if (selectedDays.length > 0) {
-        const hasAllDays = selectedDays.every(day => String(row[day]).trim() === "1");
-        if (!hasAllDays) return false;
+        if (!selectedDays.every(day => String(row[day]).trim() === "1")) return false;
      }
-
      return true;
    });
 
-   // 4. Draw Markers
-   presellerColors = {}; // Reset color mapping for new set
+   presellerColors = {}; 
    filteredData.forEach(row => {
      const lat = parseFloat(row["GPS Y"]);
      const lon = parseFloat(row["GPS X"]);
@@ -299,27 +325,25 @@
          fillColor: color,
          fillOpacity: 0.8,
          weight: 1,
-         customData: row // Attach raw data for stats
+         originalColor: color, // Store original color for reset
+         customData: row 
        }).bindPopup(popupContent).addTo(map);
 
        markers.push(marker);
      }
    });
 
-   // 5. Fit Bounds if markers exist
    if (markers.length > 0) {
      const group = L.featureGroup(markers);
      map.fitBounds(group.getBounds().pad(0.1));
    }
 
-   // 6. Update Stats to show TOTAL of all visible points initially
    calculateStats(markers);
  }
 
  // --- HELPER FUNCTIONS ---
  function getPresellerColor(name) {
     if(!presellerColors[name]) {
-        // Assign next available color, loop if run out
         const index = Object.keys(presellerColors).length % colorPalette.length;
         presellerColors[name] = colorPalette[index];
     }
@@ -372,7 +396,6 @@
     updateSDDropdown();
  }
  function updateSDDropdown() {
-    // Filter SD options based on selected ASM
     const currentAsm = document.getElementById("asmFilter").value;
     const sdSet = new Set();
     allData.forEach(r => {
@@ -380,7 +403,7 @@
             if(r["SD"]) sdSet.add(r["SD"]);
         }
     });
-    fillDropdown("sdFilter", null, sdSet); // Pass set directly
+    fillDropdown("sdFilter", null, sdSet); 
     updatePresellerDropdown();
  }
  function updatePresellerDropdown() {
@@ -410,10 +433,10 @@
         html += `<option value="${val}">${val}</option>`;
     });
     select.innerHTML = html;
-    select.value = oldVal; // Try to keep selection
+    select.value = oldVal; 
  }
 
- // Event Listeners for Dropdowns
+ // Event Listeners
  document.getElementById("asmFilter").addEventListener("change", () => { updateSDDropdown(); updateMap(); });
  document.getElementById("sdFilter").addEventListener("change", () => { updatePresellerDropdown(); updateMap(); });
  document.getElementById("presellerFilter").addEventListener("change", updateMap);
